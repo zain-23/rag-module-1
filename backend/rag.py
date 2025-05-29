@@ -3,6 +3,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.chains.retrieval_qa.base import RetrievalQA
 from langchain_groq import ChatGroq
 from dotenv import  load_dotenv
+from langchain.prompts import PromptTemplate
 import os
 
 load_dotenv()
@@ -11,10 +12,19 @@ db = faiss.FAISS.load_local("vectorStore", HuggingFaceEmbeddings(), allow_danger
 retriever = db.as_retriever()
 
 llm = ChatGroq(model="llama-3.1-8b-instant", api_key=os.getenv("GROQ_API_KEY"))
+prompt_template = PromptTemplate.from_template("""
+You are a helpful assistant. Use the following context to answer the question.
+                                               
+Context: {context}
+                                               
+Question: {question}
+""")
+
 qa = RetrievalQA.from_chain_type(
     llm=llm,
     retriever=retriever,
-    return_source_documents=True
+    return_source_documents=True,
+    chain_type_kwargs={"prompt": prompt_template},
 )
 
 def ask_question(query: str):
